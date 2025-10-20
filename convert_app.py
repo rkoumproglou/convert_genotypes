@@ -7,9 +7,7 @@ def convert_genotypes(df: pd.DataFrame) -> pd.DataFrame:
     result = df.copy()
     parent1 = df.iloc[:, 0].astype(str)
     parent2 = df.iloc[:, 1].astype(str)
-    
-    result['marker_id'] = result.index.to_list()
-    
+        
     for col in df.columns[2:]:
         new_col = []
         for i, val in enumerate(df[col]):
@@ -27,7 +25,7 @@ def convert_genotypes(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 new_col.append("X")
         result[col] = new_col
-    print(result.head())
+
     return result
 
 
@@ -76,6 +74,7 @@ def server(input, output, session):
     @render.table
     def result_table():
         df = converted()
+        df.reset_index(inplace=True)
         return df
 
     @output
@@ -90,10 +89,3 @@ def server(input, output, session):
 
 # ---- Run App ----
 app = App(app_ui, server)
-
-
-
-
-
-
-
