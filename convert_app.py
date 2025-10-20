@@ -16,28 +16,40 @@ def convert_genotypes(df: pd.DataFrame) -> pd.DataFrame:
                 new_col.append("X")
                 continue
 
-            # Clean genotype string (remove separators)
-            val_clean = re.sub(r"[/|\-]", "", str(val).strip().upper())
+            val_str = str(val).strip().upper()
+            p1_str = str(parent1[i]).strip().upper()
+            p2_str = str(parent2[i]).strip().upper()
 
-            # Extract parental alleles (e.g., AA -> A)
-            p1_alleles = list(set(re.sub(r"[/|\-]", "", parent1[i].strip().upper())))
-            p2_alleles = list(set(re.sub(r"[/|\-]", "", parent2[i].strip().upper())))
+            # Detect whether alleles are numeric (SSR) or nucleotide (SNP)
+            is_ssr = bool(re.search(r"\d", p1_str + p2_str + val_str))
 
-            # Handle missing or invalid parents
+            if is_ssr:
+                # SSR case: split alleles by / or -
+                val_alleles = re.split(r"[/\-]", val_str)
+                p1_alleles = re.split(r"[/\-]", p1_str)
+                p2_alleles = re.split(r"[/\-]", p2_str)
+            else:
+                # SNP case: take unique letters
+                val_alleles = list(set(re.sub(r"[/\-]", "", val_str)))
+                p1_alleles = list(set(re.sub(r"[/\-]", "", p1_str)))
+                p2_alleles = list(set(re.sub(r"[/\-]", "", p2_str)))
+
+            # Normalize
+            val_alleles = [a for a in val_alleles if a not in ["", "NA"]]
+            p1_alleles = [a for a in p1_alleles if a not in ["", "NA"]]
+            p2_alleles = [a for a in p2_alleles if a not in ["", "NA"]]
+
             if len(p1_alleles) == 0 or len(p2_alleles) == 0:
                 new_col.append("X")
                 continue
 
-            # Offspring alleles
-            val_alleles = list(set(val_clean))
-
-            # Heterozygote if offspring has one allele from each parent
-            if any(a in val_alleles for a in p1_alleles) and any(a in val_alleles for a in p2_alleles) and p1_alleles != p2_alleles:
+            # --- Apply classification logic ---
+            if (any(a in val_alleles for a in p1_alleles) and
+                any(a in val_alleles for a in p2_alleles) and
+                set(p1_alleles) != set(p2_alleles)):
                 new_col.append("H")
-            # Homozygote for parent 1
             elif all(a in p1_alleles for a in val_alleles):
                 new_col.append("A")
-            # Homozygote for parent 2
             elif all(a in p2_alleles for a in val_alleles):
                 new_col.append("B")
             else:
@@ -62,10 +74,9 @@ app_ui = ui.page_fluid(
         ),
         "",
         rows=10,
-        placeholder='''SNP\tP1\tP2\tInd1\tInd2\tInd3\tInd4
-Gm01_138835\tAA\tGG\tAA\tAG\tAG\tAG
-Gm01_565991\tAA\tCC\tAA\tAC\tAC\tAC
-Gm01_901691\tCC\tTT\tCC\tTC\tTC\tTC''',
+        placeholder='''markerid\tP1\tP2\tInd_01\tInd_02\tInd_03\tInd_04\tInd_05
+SSR_01\t230\t200\t230\t230/200\t230/200\t230\t200
+Gm01_138835\tAA\tGG\tAA\tAG\tAG\tAG''',
         width="100%",
     ),
 
@@ -83,7 +94,9 @@ def server(input, output, session):
         pasted = input.paste_data()
         if pasted.strip():
             try:
-                df = pd.read_csv(io.StringIO(pasted), sep="\t", header=0, dtype=str, index_col=0)
+                # Auto-detect separator (tab or comma)
+                sep = "," if "," in pasted.splitlines()[0] else "\t"
+                df = pd.read_csv(io.StringIO(pasted), sep=sep, header=0, dtype=str, index_col=0)
                 return df
             except Exception:
                 return None
@@ -102,7 +115,7 @@ def server(input, output, session):
     def result_table():
         df = converted()
         if df is None:
-            return pd.DataFrame({"Message": ["Please paste valid tab-separated data."]})
+            return pd.DataFrame({"Message": ["Please paste valid tab- or comma-separated data."]})
         df.reset_index(inplace=True)
         return df
 
@@ -118,10 +131,3 @@ def server(input, output, session):
 
 # ---- Run App ----
 app = App(app_ui, server)
-
-
-
-
-
-
-
