@@ -27,7 +27,7 @@ def convert_genotypes(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 new_col.append("X")
         result[col] = new_col
-        
+    print(result.head())
     return result
 
 
@@ -90,6 +90,7 @@ def server(input, output, session):
 
 # ---- Run App ----
 app = App(app_ui, server)
+
 
 
 
