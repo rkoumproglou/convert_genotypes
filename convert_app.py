@@ -25,7 +25,7 @@ def convert_genotypes(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 new_col.append("X")
         result[col] = new_col
-
+        
     return result
 
 
@@ -83,11 +83,12 @@ def server(input, output, session):
         if df is None:
             yield b""
         else:
-            yield df.to_csv(index=False).encode("utf-8")
+            yield df.to_csv(index=True).encode("utf-8")
 
 
 # ---- Run App ----
 app = App(app_ui, server)
+
 
 
 
