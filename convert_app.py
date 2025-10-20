@@ -56,7 +56,7 @@ def server(input, output, session):
         pasted = input.paste_data()
         if pasted.strip():
             try:
-                df = pd.read_csv(io.StringIO(pasted), sep="\t", header=0, dtype=str, row.names=1)
+                df = pd.read_csv(io.StringIO(pasted), sep="\t", header=0, dtype=str, index.col=0)
                 return df
             except Exception:
                 return None
@@ -88,4 +88,5 @@ def server(input, output, session):
 
 # ---- Run App ----
 app = App(app_ui, server)
+
 
