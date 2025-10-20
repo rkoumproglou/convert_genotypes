@@ -35,11 +35,11 @@ app_ui = ui.page_fluid(
 
     ui.input_text_area("paste_data", ui.HTML(
         "Paste your tab-separated data here<br>"
-        "<span style='font-size: 0.9em; color: gray;'>(1st and 2nd columns are the genotypes of parent P1 and P2)</span>"
+        "<span style='font-size: 0.9em; color: gray;'>(1st iss the Marker_ID, 2nd and 3rd columns are the genotypes of parent P1 and P2)</span>"
     ),
-    "", rows=10, placeholder='''P1	P2	Ind1	Ind2	Ind3	Ind4	Ind5
-230	200	230	230/200	230/200	230	200
-150	122	150	150/122	122	150/122	122''',
+    "", rows=10, placeholder='''Marker_ID    P1	P2	Ind1	Ind2	Ind3	Ind4	Ind5
+SSR1    230	200	230	230/200	230/200	230	200
+SSR2    150	122	150	150/122	122	150/122	122''',
                            width="100%"),
     ui.input_action_button("convert_btn", "Convert"),
     ui.hr(),
@@ -89,4 +89,5 @@ def server(input, output, session):
 
 # ---- Run App ----
 app = App(app_ui, server)
+
 
