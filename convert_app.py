@@ -11,7 +11,7 @@ def convert_genotypes(df: pd.DataFrame) -> pd.DataFrame:
     for col in df.columns[2:]:
         new_col = []
         for i, val in enumerate(df[col]):
-            if pd.isna(val) or val in ["-", ".", ""]:
+            if pd.isna(val) or str(val).strip() in ["-", ".", "", "NA"]:
                 new_col.append("X")
                 continue
 
@@ -28,33 +28,38 @@ def convert_genotypes(df: pd.DataFrame) -> pd.DataFrame:
             p1 = str(parent1[i]).strip().upper()
             p2 = str(parent2[i]).strip().upper()
 
-            # Normalize by sorting (so AT == TA, 230/200 == 200/230)
-            val_sorted = "".join(sorted(val_clean))
-            parents_sorted = "".join(sorted(p1 + p2))
+            # Clean parental alleles (remove separators if any)
+            p1_clean = p1.replace("/", "").replace("-", "").replace("|", "")
+            p2_clean = p2.replace("/", "").replace("-", "").replace("|", "")
 
-            # Case 1: heterozygote (contains both alleles, in any order)
-            if (
-                (p1 != p2)
-                and (p1 in val_clean or p2 in val_clean)
-                and val_sorted == parents_sorted
-            ):
+            # Handle missing parents
+            if p1_clean == "" or p2_clean == "":
+                new_col.append("X")
+                continue
+
+            # Sort alleles so order doesn’t matter (AT == TA, 230200 == 200230)
+            val_sorted = "".join(sorted(val_clean))
+            p1_sorted = "".join(sorted(p1_clean))
+            p2_sorted = "".join(sorted(p2_clean))
+
+            # Distinguish heterozygotes (H)
+            # If offspring genotype contains both parental alleles, mark as H
+            if p1_clean != p2_clean and all(allele in val_clean for allele in (p1_clean, p2_clean)):
                 new_col.append("H")
 
-            # Case 2: homozygote for parent 1
-            elif val_clean == p1:
+            # Homozygotes for parent 1 or parent 2
+            elif val_sorted == p1_sorted:
                 new_col.append("A")
-
-            # Case 3: homozygote for parent 2
-            elif val_clean == p2:
+            elif val_sorted == p2_sorted:
                 new_col.append("B")
 
-            # Case 4: if contains one parental allele but not matching both — still A or B
-            elif p1 in val_clean and p2 not in val_clean:
+            # If partial match (e.g., one allele)
+            elif any(allele in val_clean for allele in p1_clean) and not any(allele in val_clean for allele in p2_clean):
                 new_col.append("A")
-            elif p2 in val_clean and p1 not in val_clean:
+            elif any(allele in val_clean for allele in p2_clean) and not any(allele in val_clean for allele in p1_clean):
                 new_col.append("B")
 
-            # Case 5: unrecognized or missing
+            # Unrecognized genotype
             else:
                 new_col.append("X")
 
@@ -79,7 +84,8 @@ app_ui = ui.page_fluid(
         rows=10,
         placeholder='''Marker_ID\tP1\tP2\tInd1\tInd2\tInd3\tInd4\tInd5
 SSR1\t230\t200\t230\t230/200\t230/200\t230\t200
-SNP1\tA\tT\tA\tA/T\tT/A\tA\tT''',
+SNP1\tA\tT\tA\tA/T\tT/A\tA\tT
+SNP2\tA\tC\tA\tAC\tCC\tC\tAA''',
         width="100%",
     ),
 
@@ -132,4 +138,8 @@ def server(input, output, session):
 
 # ---- Run App ----
 app = App(app_ui, server)
+
+
+
+
 
